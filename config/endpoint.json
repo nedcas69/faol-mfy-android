@@ -1,0 +1,6 @@
+{
+  "api_base_url": "https://daily-casino-spyware-entirely.trycloudflare.com/",
+  "s3_endpoint": "https://REPLACE-WITH-MINIO-TUNNEL.trycloudflare.com",
+  "updated_at": "2026-07-30T06:32:00Z",
+  "min_app_version": 0
+}

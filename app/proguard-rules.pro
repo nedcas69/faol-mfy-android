@@ -1,0 +1,9 @@
+-keepattributes *Annotation*, InnerClasses, Signature, RuntimeVisible*Annotations
+-dontwarn kotlinx.serialization.**
+-keep,includedescriptorclasses class uz.bekobod.faolmfy.**$$serializer { *; }
+-keepclassmembers class uz.bekobod.faolmfy.** { *** Companion; }
+-keepclasseswithmembers class uz.bekobod.faolmfy.** { kotlinx.serialization.KSerializer serializer(...); }
+-keep class uz.bekobod.faolmfy.data.remote.** { *; }
+-keep class * extends androidx.room.RoomDatabase { *; }
+-dontwarn okhttp3.**
+-dontwarn retrofit2.**

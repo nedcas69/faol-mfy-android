@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Faol MFY</string>
+    <string name="notif_channel_tracking">Ish vaqti kuzatuvi</string>
+    <string name="notif_channel_alerts">Ogohlantirishlar</string>
+    <string name="tracking_active">Kuzatuv yoqilgan · 09:00–18:00</string>
+    <string name="tracking_idle">Kuzatuv o\'chiq</string>
+</resources>

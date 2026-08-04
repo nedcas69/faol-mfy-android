@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pilotda server HTTP orqali ishlaydi (ichki tarmoq / Tailscale).
+     HTTPS ga o'tganda cleartextTrafficPermitted="false" qiling. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
