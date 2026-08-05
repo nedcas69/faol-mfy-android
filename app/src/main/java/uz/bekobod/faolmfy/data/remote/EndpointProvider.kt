@@ -48,43 +48,76 @@ object EndpointProvider {
 
     @Volatile
     private var cached: String? = null
+    @Volatile
+    private var cachedAt: Long = 0L
+
+    // Keshning yashash muddati. Bu vaqtdan keyin GitHub'dan qayta olinadi.
+    // Qisqa bo'lgani uchun tunnel o'zgarsa ilova bir daqiqada o'zi topadi,
+    // lekin har so'rovda GitHub'ni bezovta qilmaydi.
+    private const val TTL_MS = 60_000L
 
     /**
-     * Joriy API manzilini qaytaradi. Tartib:
-     *   1. Shu sessiyada allaqachon olingan bo'lsa — o'shani
-     *   2. GitHub'dan yangisini olishga urinadi va keshga yozadi
-     *   3. Internet yo'q bo'lsa — oxirgi saqlangan manzilni
-     *   4. Hech narsa bo'lmasa — APK ichidagi standart (BuildConfig)
+     * Joriy API manzilini qaytaradi.
+     *
+     * @param force true bo'lsa keshni butunlay chetlab, GitHub'dan yangisini
+     *   oladi. So'rov 200 bermaganda ApiClient shuni chaqiradi.
+     *
+     * Tartib:
+     *   1. Kesh yangi (TTL ichida) va force emas — o'shani
+     *   2. GitHub'dan olishga urinadi, keshga yozadi
+     *   3. Ulanmasa — oxirgi diskdagi manzil
+     *   4. Hech narsa yo'q — APK ichidagi standart
      */
-    suspend fun apiBaseUrl(context: Context): String {
-        cached?.let { return it }
+    suspend fun apiBaseUrl(context: Context, force: Boolean = false): String {
+        val now = System.currentTimeMillis()
+        if (!force) {
+            cached?.let { if (now - cachedAt < TTL_MS) return it }
+        }
 
         val prefs = Prefs(context)
         val fetched = fetch()
         if (fetched != null) {
             val url = normalize(fetched.apiBaseUrl)
+            val changed = url != cached
             cached = url
+            cachedAt = now
             prefs.saveDiscoveredEndpoint(url, fetched.s3Endpoint)
-            Log.i(TAG, "Manzil GitHub'dan olindi: $url")
+            if (changed) Log.i(TAG, "Manzil yangilandi: $url")
             return url
         }
+
+        // GitHub'ga ulana olmadik — sessiyadagi keshni ishlatamiz
+        cached?.let { return it }
 
         val saved = prefs.discoveredApi()
         if (!saved.isNullOrBlank()) {
             cached = saved
-            Log.i(TAG, "Manzil keshdan olindi: $saved")
+            cachedAt = now
+            Log.i(TAG, "Manzil diskdan olindi: $saved")
             return saved
         }
 
         val fallback = normalize(BuildConfig.API_BASE_URL)
         cached = fallback
+        cachedAt = now
         Log.w(TAG, "Discovery ishlamadi, standart manzil: $fallback")
         return fallback
+    }
+
+    /**
+     * Manzilni GitHub'dan majburan qayta oladi (keshni tashlaydi).
+     * So'rov muvaffaqiyatsiz bo'lganda ApiClient shuni chaqiradi:
+     * ehtimol tunnel manzili o'zgargan.
+     */
+    suspend fun forceRefresh(context: Context): String {
+        Log.i(TAG, "Majburiy yangilash — so'rov muvaffaqiyatsiz bo'ldi")
+        return apiBaseUrl(context, force = true)
     }
 
     /** Keyingi so'rovda GitHub'dan qaytadan olishga majbur qiladi. */
     fun invalidate() {
         cached = null
+        cachedAt = 0L
     }
 
     private fun fetch(): Endpoint? = try {

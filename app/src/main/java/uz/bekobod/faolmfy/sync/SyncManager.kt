@@ -74,7 +74,11 @@ class SyncManager(private val context: Context) {
             )
 
             val ok = try {
-                val resp = api().pushPositions(request)
+                var resp = api().pushPositions(request)
+                if (!resp.isSuccessful && resp.code() >= 500) {
+                    // Server xatosi — ehtimol eski tunnel manzili. Yangilab bir marta qayta.
+                    resp = ApiClient.getReadyRefreshed(context).pushPositions(request)
+                }
                 if (resp.isSuccessful) {
                     val b = resp.body()
                     Log.i(TAG, "Yuborildi: qabul ${b?.accepted}, dublikat ${b?.duplicates}, " +
@@ -86,8 +90,15 @@ class SyncManager(private val context: Context) {
                     false
                 }
             } catch (e: Exception) {
-                Log.w(TAG, "Tarmoq xatosi: ${e.message}")
-                false
+                // Ulanmadi — ehtimol tunnel manzili o'zgargan. Yangilab bir marta qayta.
+                val retried = try {
+                    val resp = ApiClient.getReadyRefreshed(context).pushPositions(request)
+                    resp.isSuccessful
+                } catch (e2: Exception) {
+                    Log.w(TAG, "Tarmoq xatosi (qayta urinishdan keyin ham): ${e2.message}")
+                    false
+                }
+                retried
             }
 
             if (!ok) { allOk = false; break }

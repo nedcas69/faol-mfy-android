@@ -55,6 +55,23 @@ object ApiClient {
         }
     }
 
+    /**
+     * Manzilni GitHub'dan MAJBURAN qayta olib, klientni yangi manzil bilan
+     * quradi. So'rov ulanmay qolganda chaqiriladi — ehtimol tunnel manzili
+     * o'zgargan. Bu foydalanuvchi hech narsa qilmasdan ilova o'zini tuzatishi
+     * uchun: eski manzil ishlamasa, yangisini topib qayta uladi.
+     */
+    suspend fun getReadyRefreshed(context: Context): ApiService {
+        val baseUrl = EndpointProvider.forceRefresh(context.applicationContext)
+        return synchronized(this) {
+            if (builtFor == baseUrl) instance!!
+            else build(context.applicationContext, baseUrl).also {
+                instance = it
+                builtFor = baseUrl
+            }
+        }
+    }
+
     /** Diskdagi oxirgi manzil yoki BuildConfig — bloklashsiz. */
     private fun fallbackBaseUrl(context: Context): String {
         return runBlocking {

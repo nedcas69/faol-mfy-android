@@ -214,7 +214,21 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     // ------------------------------------------------------ spravochniklar
 
     fun loadRegions() = viewModelScope.launch {
-        runCatching { api().orgUnits(level = 2) }.getOrNull()?.body()?.let { _regions.value = it }
+        // Birinchi urinish. Muvaffaqiyatsiz bo'lsa (ehtimol tunnel manzili
+        // o'zgargan) — GitHub'dan yangi manzil olib qayta urinamiz. Shu
+        // sabab foydalanuvchi Clear data qilmasdan ilova o'zini tuzatadi.
+        val ok = runCatching { api().orgUnits(level = 2) }.getOrNull()
+        if (ok?.isSuccessful == true && ok.body() != null) {
+            _regions.value = ok.body()!!
+            return@launch
+        }
+        // Qayta urinish — yangilangan manzil bilan
+        val retry = runCatching {
+            ApiClient.getReadyRefreshed(getApplication()).orgUnits(level = 2)
+        }.getOrNull()
+        if (retry?.isSuccessful == true && retry.body() != null) {
+            _regions.value = retry.body()!!
+        }
     }
 
     fun loadDistricts(regionId: Int) = viewModelScope.launch {
